@@ -1,0 +1,47 @@
+#!/bin/sh
+
+main_menu=("running containers" "containers from compose file")
+options=("logs" "attach")
+yesNo=("yes" "no")
+
+function selRunningCont() {
+  # tail to remove the first header 
+  containerId=$(docker ps | tail -n +2 | fzf --border-label="Select Container" | awk ' { print $1 } ' )
+  selectOperation "$containerId"
+}
+
+function selectOperation() {
+  # $1 -> containerId
+  option=$(printf '%s\n' "${options[@]}" | fzf --border-label="Select Operation")
+
+  label="Execute - $(docker "$option" "$1")"
+  shouldExec=$(printf '%s\n' "${yesNo[@]}" | fzf --border-label="$label")
+
+  if [[ $shouldExec == "yes" ]]; then
+    docker "$option" "$1"
+  else
+    echo "Cancelled $label"
+  fi
+}
+
+
+function fromRunning() {
+  selRunningCont
+}
+
+function fromFile() {
+  # use yq ( yaml parser ) to parse  compose file and operate further
+ echo "from File Containers" 
+}
+
+function main(){
+  choosen=$(printf '%s\n' "${main_menu[@]}" | fzf  --border-label="Select Main Menu" )
+
+  if [[ $choosen == "running containers" ]]; then
+    fromRunning
+  else
+    fromFile
+  fi
+}
+
+main 
